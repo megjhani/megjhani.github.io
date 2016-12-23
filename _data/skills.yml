@@ -1,0 +1,21 @@
+# skills section data
+- name: Java
+  percentage: 95
+
+- name: Machine Learning
+  percentage: 95
+
+- name: Linux/Shell
+  percentage: 75
+
+- name: Image Processing
+  percentage: 95
+
+- name: Data Analysis
+  percentage: 95
+
+- name: Matlab
+  percentage: 95
+
+- name: Signal Analysis
+  percentage: 95

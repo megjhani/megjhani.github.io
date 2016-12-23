@@ -1,0 +1,43 @@
+# careers section data
+- name:
+    detail: Post-doctoral Research Scientist
+    i18n: Postdoc
+  desc:
+    detail: I am working with high frequency physiology data to develop prediction models for delayed cerebral ischemia(DCI) after subarachnoid hemorrhage (SAH). In particular, I am interested in developing models using dictionary learning and deep learning methods to uncover hiddden trends. My Postdoc advisor is Dr. Soojin Park
+    i18n: nextcode_des
+  date:
+    detail: Aug. 2016
+    i18n: nextcode_date
+  job:
+    detail: Postdoc 
+    i18n: nextcode_job
+  icon: fa-plus-square
+
+- name:
+    detail: Phd Student
+    i18n: PhdStudent
+  desc:
+    detail: Data-Driven, Label Consistent Dictionary Learning Methods for Analysis of Biological Datasets. My PhD Advisor is Dr. Badrniath Roysam
+    i18n: netease_des
+  date:
+    detail: Jan. 2012
+    i18n: nextcode_date
+  job:
+    detail: Student 
+    i18n: phdStudent
+  icon: fa-gamepad
+
+- name:
+    detail: Senior Associate
+    i18n: SA
+  desc:
+    detail: Implemented and developed the insurance solutions for Property and Casualty lines of business- Worked on agile software development model;
+    i18n: netease_des
+  date:
+    detail: Jan. 2006
+    i18n: nextcode_date
+  job:
+    detail: Software Engineer 
+    i18n: phdStudent
+  icon: fa-gamepad
+
