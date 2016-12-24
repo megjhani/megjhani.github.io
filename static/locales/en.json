@@ -1,0 +1,40 @@
+{
+  "website":{
+    "title": "Megjhani"
+  },
+  "nav":{
+    "home": "Home",
+    "about_me": "About",
+    "skills": "Skills",
+    "projects": "Projects",
+    "career": "Career",
+    "blog": "Publication",
+    "link": "Link"
+  },
+  "about_me":{
+    "about_me": "About Me",
+    "des": "I am a Post-doctoral Research Scientist at Columbia University Medical Center. My research interests include  applying and developing novel machine learning algorithms for neuronal data.  My current work focusses on developing sparse coding based algorithms for discovering hidden trends in the high frequency physiological data acquired from the bedside monitors at the Neuro Intesive care unit (NICU) at CUMC. My current advisor is Dr. Soojin Park.."
+  },
+  "skills":{
+    "my_skills": "My Skills"
+  },
+
+  "career":{
+    "my_career": "My Career",
+    "nextcode": "Post Doctoral Research Scientist",
+    "nextcode_des": "I am working with high frequency physiology data to develop prediction models for delayed cerebral ischemia(DCI) after subarachnoid hemorrhage (SAH). In particular, I am interested in developing models using dictionary learning and deep learning methods to uncover hiddden trends",
+    "nextcode_date": "August. 2016",
+    "nextcode_job": "Post Doctoral Research Scientist",
+    "netease": "Phd Student",
+    "netease_des": "Data-Driven, Label Consistent Dictionary Learning Methods for Analysis of Biological Datasets .",
+    "netease_date": "Jan. 2012",
+  },
+  "Publications":{
+    "my_blog": "https://scholar.google.com/citations?user=IOt7uesAAAAJ&hl=en"
+  },
+  "link":{
+    "link": "Link",
+    "view": "views"
+  }
+
+}
