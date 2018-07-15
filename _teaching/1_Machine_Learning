@@ -1,0 +1,49 @@
+---
+layout: page
+title: Machine Learning
+description: Machine Learning
+img: /assets/img/ML.jpg
+---
+
+
+
+
+<div class="img_row">
+    <img class="col three" src="{{ site.baseurl }}/assets/img/ML.jpg" alt="" title="ML"/>
+</div>
+<div class="col three caption">
+</div>
+
+<table>
+<tr> 
+	<th> Lec # </th>
+	<th> topics  </th>
+	<th> notes </th>
+</tr>
+<tr>
+	<td> 1 </td>
+	<td> Introduction to Machine learning </td>
+</tr>
+<tr>
+	<td> 2 </td>
+	<td> Linear Regression, classification </td>
+</tr>
+<tr>
+	<td> 3 </td>
+	<td> Cross-Validation </td>
+</tr>
+<tr>
+	<td> 4 </td>
+	<td> Logistic Regression </td>
+</tr>
+<tr>
+	<td> 5 </td>
+	<td> Regularization 1 </td>
+</tr>
+<tr>
+	<td> 6 </td>
+	<td> Regularization 2 </td>
+</tr>
+<br/><br/>
+
+
