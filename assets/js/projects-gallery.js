@@ -1,12 +1,8 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
 const canvas = document.getElementById("projects-canvas");
-const rootEl = document.querySelector(".projects-experience");
 const copyEl = document.getElementById("projects-stage-copy");
-const stageActions = document.getElementById("project-stage-actions");
-const splitBtn = document.getElementById("project-split-btn");
-const pillarBtns = Array.from(document.querySelectorAll(".pillar-picker"));
-const backBtn = document.getElementById("gallery-back");
+const toggleBtns = Array.from(document.querySelectorAll(".pillar-toggle button"));
 const prevBtn = document.getElementById("gallery-prev");
 const nextBtn = document.getElementById("gallery-next");
 const detail = document.getElementById("project-detail");
@@ -28,7 +24,7 @@ const PROJECTS = {
   neuro: {
     label: "Neurocritical Care AI",
     color: COLORS.neuro,
-    intro: "The hemisphere unravels into an ICP pulse train. Each node along the signal is a project — click one to read it.",
+    intro: "The brain unravels into an ICP pulse train. Each node along the signal is a project — click one to read it.",
     items: [
       {
         title: "Non-Invasive ICP Estimation",
@@ -59,7 +55,7 @@ const PROJECTS = {
   music: {
     label: "Music & the Brain",
     color: COLORS.music,
-    intro: "The hemisphere unravels into a chord of harmonics. Each node along the signal is a project — click one to read it.",
+    intro: "The brain unravels into a chord of harmonics. Each node along the signal is a project — click one to read it.",
     items: [
       {
         title: "Cortical Dynamics in Aesthetic Experience",
@@ -103,10 +99,9 @@ const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true 
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
 const brainGroup = new THREE.Group();
-const flowGroup = new THREE.Group();
 const nodeGroup = new THREE.Group();
 nodeGroup.visible = false;
-scene.add(brainGroup, flowGroup, nodeGroup);
+scene.add(brainGroup, nodeGroup);
 
 let seed = 97;
 function rand() {
@@ -211,10 +206,8 @@ function waveY(pillar, u) {
   ) * 0.86;
 }
 
-// ---- brain particle system ------------------------------------------------
-const SPLIT = 1.42;
+// ---- brain particle system: brain ⇄ signal corridor ------------------------
 const uniforms = {
-  uSplit:   { value: 0 },
   uGallery: { value: 0 },
   uTime:    { value: 0 },
   uOpacity: { value: 1 },
@@ -222,7 +215,6 @@ const uniforms = {
   uScale:   { value: 1 },
 };
 
-const hemisphereHits = [];
 let brainGeo = null;
 let pointSides = null;   // -1 left (neuro) | +1 right (music)
 let pointRand = null;    // 3 randoms per point
@@ -233,7 +225,7 @@ function buildBrain() {
   const faces = src.count / 3;
   const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
   const dir = new THREE.Vector3(), p = new THREE.Vector3();
-  const pos = [], split = [], color = [], sides = [], rands = [];
+  const pos = [], color = [], sides = [], rands = [];
   const sulcus = new THREE.Color("#020a08");
   const leftColor = new THREE.Color(COLORS.neuro);
   const rightColor = new THREE.Color(COLORS.music);
@@ -253,13 +245,11 @@ function buildBrain() {
     if (groove > 0.38) continue;
 
     pos.push(p.x, p.y, p.z);
-    const side = p.x < 0 ? -1 : 1;
-    sides.push(side);
+    sides.push(p.x < 0 ? -1 : 1);
     rands.push(rand(), rand(), rand());
-    split.push(p.x + side * SPLIT, p.y, p.z);
 
     const fold = Math.pow(brainFold(dir), 0.7);
-    const semantic = side < 0 ? leftColor : rightColor;
+    const semantic = p.x < 0 ? leftColor : rightColor;
     const c = sulcus.clone().lerp(bright, fold * 0.72).lerp(semantic, 0.42);
     color.push(c.r, c.g, c.b);
   }
@@ -270,7 +260,6 @@ function buildBrain() {
 
   brainGeo = new THREE.BufferGeometry();
   brainGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  brainGeo.setAttribute("splitPosition", new THREE.Float32BufferAttribute(split, 3));
   brainGeo.setAttribute("color", new THREE.Float32BufferAttribute(color, 3));
   brainGeo.setAttribute("waveTarget", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
   brainGeo.setAttribute("waveColor", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
@@ -282,12 +271,10 @@ function buildBrain() {
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     vertexShader: `
-      attribute vec3 splitPosition;
       attribute vec3 color;
       attribute vec3 waveTarget;
       attribute vec3 waveColor;
       attribute float aGhost;
-      uniform float uSplit;
       uniform float uGallery;
       uniform float uTime;
       uniform float uOpacity;
@@ -296,13 +283,12 @@ function buildBrain() {
       varying vec3 vColor;
       varying float vAlpha;
       void main() {
-        vec3 base = mix(position, splitPosition, uSplit);
         vec3 wpos = waveTarget;
         float live = 1.0 - aGhost;
         // the waveform keeps flowing: ripple + drift along the corridor
         wpos.y += sin(waveTarget.x * 2.1 - uTime * 2.3) * 0.055 * live;
         wpos.z += cos(waveTarget.x * 1.3 + uTime * 0.9) * 0.05 * live;
-        vec3 pos = mix(base, wpos, uGallery);
+        vec3 pos = mix(position, wpos, uGallery);
 
         // luminance packets racing left -> right along the signal
         float packet = pow(max(0.0, sin(pos.x * 1.35 - uTime * 2.1)), 6.0) * uGallery * live;
@@ -310,7 +296,7 @@ function buildBrain() {
 
         vec4 mv = modelViewMatrix * vec4(pos, 1.0);
         float depth = clamp((-mv.z - 3.6) / 4.0, 0.0, 1.0);
-        float ghostFade = mix(1.0, 1.0 - 0.94 * aGhost, uGallery);
+        float ghostFade = mix(1.0, 1.0 - 0.96 * aGhost, uGallery);
         vAlpha = (0.82 - depth * 0.42) * uOpacity * ghostFade;
         gl_PointSize = uSize * uScale * (1.25 - depth * 0.35) * (1.0 + packet * 0.9 + 0.3 * uGallery * live) / -mv.z;
         gl_Position = projectionMatrix * mv;
@@ -329,114 +315,8 @@ function buildBrain() {
     `,
   });
   brainGroup.add(new THREE.Points(brainGeo, mat));
-
-  const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-  [["neuro", -1.55], ["music", 1.55]].forEach(([pillar, x]) => {
-    const hit = new THREE.Mesh(new THREE.SphereGeometry(0.92, 18, 18), hitMat);
-    hit.position.set(x, 0.0, 0);
-    hit.userData.pillar = pillar;
-    brainGroup.add(hit);
-    hemisphereHits.push(hit);
-  });
 }
 buildBrain();
-
-// ---- signal flow bridge: particle stream between the split hemispheres ----
-const FLOW = {
-  strands: 3,
-  per: 240,
-  span: 1.44,
-  amp: [0.30, 0.20, 0.12],
-  cycles: [2.0, 3.1, 4.3],
-  speed: [0.105, 0.155, 0.225],
-};
-const flowCount = FLOW.strands * FLOW.per;
-const flowPos = new Float32Array(flowCount * 3);
-const flowCol = new Float32Array(flowCount * 3);
-const flowSize = new Float32Array(flowCount);
-const flowSeed = new Float32Array(flowCount);
-for (let i = 0; i < flowCount; i++) flowSeed[i] = rand();
-
-const flowGeo = new THREE.BufferGeometry();
-flowGeo.setAttribute("position", new THREE.BufferAttribute(flowPos, 3));
-flowGeo.setAttribute("color", new THREE.BufferAttribute(flowCol, 3));
-flowGeo.setAttribute("aSize", new THREE.BufferAttribute(flowSize, 1));
-
-const flowVertex = `
-  attribute vec3 color;
-  attribute float aSize;
-  uniform float uScale;
-  uniform float uFade;
-  uniform float uSizeMul;
-  varying vec3 vColor;
-  varying float vAlpha;
-  void main() {
-    vColor = color;
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    vAlpha = uFade;
-    gl_PointSize = aSize * uSizeMul * uScale / -mv.z;
-    gl_Position = projectionMatrix * mv;
-  }
-`;
-const flowFragment = `
-  varying vec3 vColor;
-  varying float vAlpha;
-  void main() {
-    vec2 c = gl_PointCoord - 0.5;
-    float d = length(c);
-    if (d > 0.5) discard;
-    float a = smoothstep(0.5, 0.04, d);
-    gl_FragColor = vec4(vColor, a * vAlpha);
-  }
-`;
-function makeFlowMaterial(sizeMul) {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uScale: uniforms.uScale,
-      uFade: { value: 0 },
-      uSizeMul: { value: sizeMul },
-    },
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    vertexShader: flowVertex,
-    fragmentShader: flowFragment,
-  });
-}
-const flowMat = makeFlowMaterial(1.0);
-const haloMat = makeFlowMaterial(3.4);
-flowGroup.add(new THREE.Points(flowGeo, flowMat), new THREE.Points(flowGeo, haloMat));
-flowGroup.children.forEach((p) => { p.frustumCulled = false; });
-flowGroup.visible = false;
-
-const flowTeal = new THREE.Color(COLORS.neuro);
-const flowGreen = new THREE.Color(COLORS.music);
-const flowWhite = new THREE.Color("#eafff8");
-const _fc = new THREE.Color();
-
-function updateFlow(t) {
-  for (let s = 0; s < FLOW.strands; s++) {
-    const amp = FLOW.amp[s], k = FLOW.cycles[s], sp = FLOW.speed[s];
-    for (let j = 0; j < FLOW.per; j++) {
-      const i = s * FLOW.per + j;
-      const u = (flowSeed[i] + t * sp) % 1;
-      const env = Math.sin(Math.PI * u);
-      const wig = vnoise(u * 7.0 + s * 13.7, t * 0.35, s * 4.1) - 0.5;
-      flowPos[i * 3]     = -FLOW.span + 2 * FLOW.span * u;
-      flowPos[i * 3 + 1] = Math.sin(u * Math.PI * 2 * k - t * (1.1 + s * 0.5)) * amp * env + wig * 0.10 * env;
-      flowPos[i * 3 + 2] = Math.cos(u * Math.PI * 2 * (k * 0.6) + t * 0.7 + s * 2.1) * 0.12 * env;
-
-      const packet = Math.pow(Math.max(0, Math.sin(u * Math.PI * 2 * 2.0 - t * 3.6 + s * 2.4)), 8);
-      flowSize[i] = (0.017 + 0.006 * env + 0.042 * packet) * (0.55 + 0.45 * env);
-
-      _fc.copy(flowTeal).lerp(flowGreen, u).lerp(flowWhite, 0.15 + packet * 0.8);
-      flowCol[i * 3] = _fc.r; flowCol[i * 3 + 1] = _fc.g; flowCol[i * 3 + 2] = _fc.b;
-    }
-  }
-  flowGeo.attributes.position.needsUpdate = true;
-  flowGeo.attributes.color.needsUpdate = true;
-  flowGeo.attributes.aSize.needsUpdate = true;
-}
 
 // ---- project nodes on the signal ------------------------------------------
 function glowTexture() {
@@ -503,10 +383,9 @@ tip.setAttribute("aria-hidden", "true");
 document.body.appendChild(tip);
 
 // ---- state -------------------------------------------------------------------
-let mode = "brain";
-let activePillar = "neuro";
+let activePillar = null;
+let pendingPillar = null;
 let selectedIndex = 0;
-let targetSplit = 0;
 let targetGallery = 0;
 let pointer = new THREE.Vector2(-2, -2);
 let mouse = new THREE.Vector2(0, 0);
@@ -518,26 +397,11 @@ let time = 0;
 
 const raycaster = new THREE.Raycaster();
 
-function setMode(nextMode) {
-  mode = nextMode;
-  rootEl.dataset.mode = nextMode;
-  if (stageActions) stageActions.style.display = nextMode === "brain" ? "" : "none";
-}
-
-function enterSplit() {
-  setMode("split");
-  targetSplit = 1;
-  targetGallery = 0;
-  targetCam.set(0, 0.18, 6.0);
-  targetLook.set(0, 0, 0);
-  if (copyEl) copyEl.textContent = "Choose a hemisphere to explore its projects.";
-}
-
 function fillWaveTargets(pillar) {
   const wt = brainGeo.attributes.waveTarget.array;
   const wc = brainGeo.attributes.waveColor.array;
   const gh = brainGeo.attributes.aGhost.array;
-  const sp = brainGeo.attributes.splitPosition.array;
+  const bp = brainGeo.attributes.position.array;
   const accent = new THREE.Color(PROJECTS[pillar].color);
   const brightC = new THREE.Color("#eafff8");
   const dimC = new THREE.Color("#0a201b");
@@ -550,8 +414,10 @@ function fillWaveTargets(pillar) {
     gh[i] = ghost;
     const r1 = pointRand[i * 3], r2 = pointRand[i * 3 + 1], r3 = pointRand[i * 3 + 2];
     if (ghost) {
-      // the other hemisphere stays parked where the split left it, as faint dust
-      wt[i * 3] = sp[i * 3]; wt[i * 3 + 1] = sp[i * 3 + 1]; wt[i * 3 + 2] = sp[i * 3 + 2];
+      // the other hemisphere disperses outward and all but vanishes
+      wt[i * 3]     = bp[i * 3] * 3.2 + (r1 - 0.5) * 2.0;
+      wt[i * 3 + 1] = bp[i * 3 + 1] * 3.2 + (r2 - 0.5) * 1.4;
+      wt[i * 3 + 2] = bp[i * 3 + 2] * 2.4 - 1.5;
       wc[i * 3] = 0.02; wc[i * 3 + 1] = 0.08; wc[i * 3 + 2] = 0.07;
     } else {
       const u = r1;
@@ -567,35 +433,35 @@ function fillWaveTargets(pillar) {
   brainGeo.attributes.aGhost.needsUpdate = true;
 }
 
-function enterGallery(pillar, immediate = false) {
+function applyPillar(pillar) {
   activePillar = pillar;
   selectedIndex = 0;
   fillWaveTargets(pillar);
   buildNodes(pillar);
   nodeGroup.visible = true;
-  setMode("gallery");
-  targetSplit = 1;
-  targetGallery = 1;
-  if (immediate) {
-    uniforms.uSplit.value = 1;
-    uniforms.uGallery.value = 1;
-  }
   focusNode(0);
   if (copyEl) copyEl.textContent = PROJECTS[pillar].intro;
+  toggleBtns.forEach((b) => b.classList.toggle("is-active", b.dataset.pillar === pillar));
+  if (window.location.hash !== "#" + pillar) {
+    history.replaceState(null, "", "#" + pillar);
+  }
   closeDetail();
 }
 
-function returnToBrain() {
-  setMode("split");
+// switching pillars: particles gather back into the brain, then unravel
+// into the other signal
+function setPillar(pillar, instant = false) {
+  if (pillar === activePillar) return;
+  if (instant || activePillar === null) {
+    applyPillar(pillar);
+    targetGallery = 1;
+    return;
+  }
+  pendingPillar = pillar;
   targetGallery = 0;
-  closeDetail();
-  tip.classList.remove("is-visible");
-  targetCam.set(0, 0.18, 6.0);
-  targetLook.set(0, 0, 0);
-  if (copyEl) copyEl.textContent = "Choose a hemisphere to explore its projects.";
 }
 
-function focusNode(deltaOrIndex, isDelta = false) {
+function focusNode(deltaOrIndex, isDelta = false, announce = false) {
   const count = PROJECTS[activePillar].items.length;
   selectedIndex = isDelta
     ? (selectedIndex + deltaOrIndex + count) % count
@@ -605,8 +471,8 @@ function focusNode(deltaOrIndex, isDelta = false) {
   const fx = node.position.x * nodeGroup.scale.x * 0.85;
   targetCam.set(fx, 0.55, 4.9);
   targetLook.set(fx, 0.0, 0);
-  const item = PROJECTS[activePillar].items[selectedIndex];
-  if (copyEl && mode === "gallery") {
+  if (announce && copyEl) {
+    const item = PROJECTS[activePillar].items[selectedIndex];
     copyEl.innerHTML = `<strong>${String(selectedIndex + 1).padStart(2, "0")} &middot; ${item.title}</strong> &mdash; ${item.short}`;
   }
 }
@@ -629,60 +495,41 @@ function closeDetail() {
   detail.setAttribute("aria-hidden", "true");
 }
 
-splitBtn.addEventListener("click", enterSplit);
-pillarBtns.forEach((button) => {
-  button.addEventListener("click", () => enterGallery(button.dataset.pillar));
+toggleBtns.forEach((button) => {
+  button.addEventListener("click", () => setPillar(button.dataset.pillar));
 });
-backBtn.addEventListener("click", returnToBrain);
-prevBtn.addEventListener("click", () => { focusNode(-1, true); closeDetail(); });
-nextBtn.addEventListener("click", () => { focusNode(1, true); closeDetail(); });
+prevBtn.addEventListener("click", () => { focusNode(-1, true, true); closeDetail(); });
+nextBtn.addEventListener("click", () => { focusNode(1, true, true); closeDetail(); });
 detailClose.addEventListener("click", closeDetail);
 
-function routeFromHash() {
-  const pillar = window.location.hash.replace("#", "");
-  if (pillar === "split") {
-    enterSplit();
-    uniforms.uSplit.value = 1;
-    return;
-  }
-  if (PROJECTS[pillar]) {
-    enterGallery(pillar, true);
-  }
+function pillarFromHash() {
+  const h = window.location.hash.replace("#", "");
+  return PROJECTS[h] ? h : "neuro";
 }
-window.addEventListener("hashchange", routeFromHash);
-routeFromHash();
+window.addEventListener("hashchange", () => setPillar(pillarFromHash()));
 
-window.addEventListener("pointermove", (event) => {
+function updatePointer(event) {
   const rect = canvas.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
   mouse.x = (event.clientX / window.innerWidth - 0.5) * 2;
   mouse.y = (event.clientY / window.innerHeight - 0.5) * 2;
-}, { passive: true });
+}
+window.addEventListener("pointermove", updatePointer, { passive: true });
+// touch fires no pointermove before a tap — set raycast coords on pointerdown
+canvas.addEventListener("pointerdown", updatePointer);
 
 canvas.addEventListener("click", () => {
   raycaster.setFromCamera(pointer, camera);
-  if (mode === "brain") {
-    enterSplit();
-    return;
-  }
-  if (mode === "split") {
-    const hit = raycaster.intersectObjects(hemisphereHits, false)[0];
-    if (hit) enterGallery(hit.object.userData.pillar);
-    return;
-  }
-  if (mode === "gallery") {
-    const hit = raycaster.intersectObjects(nodeHits, false)[0];
-    if (hit) openDetail(hit.object.userData.index);
-  }
+  const hit = raycaster.intersectObjects(nodeHits, false)[0];
+  if (hit) openDetail(hit.object.userData.index);
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeDetail();
-  if (mode !== "gallery") return;
-  if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") { focusNode(1, true); closeDetail(); }
-  if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") { focusNode(-1, true); closeDetail(); }
-  if (event.key === "Enter") openDetail(selectedIndex);
+  if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") { focusNode(1, true, true); closeDetail(); }
+  if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") { focusNode(-1, true, true); closeDetail(); }
+  if (event.key === "Enter" && document.activeElement === document.body) openDetail(selectedIndex);
 });
 
 function resize() {
@@ -694,13 +541,17 @@ function resize() {
   uniforms.uScale.value = h * 0.5;
   const small = w < 760;
   brainGroup.scale.setScalar(small ? 0.82 : 1.08);
-  flowGroup.scale.copy(brainGroup.scale);
   nodeGroup.scale.copy(brainGroup.scale);
   camera.fov = small ? 58 : 48;
   camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", resize);
 resize();
+
+// land directly in the chosen corridor: brain unravels into it on load
+applyPillar(pillarFromHash());
+targetGallery = 1;
+if (reduceMotion) uniforms.uGallery.value = 1;
 
 const _proj = new THREE.Vector3();
 
@@ -709,34 +560,26 @@ function animate() {
   time += reduceMotion ? 0.005 : 0.016;
   uniforms.uTime.value = time;
 
-  uniforms.uSplit.value += (targetSplit - uniforms.uSplit.value) * 0.075;
-  uniforms.uGallery.value += (targetGallery - uniforms.uGallery.value) * 0.055;
-  const split = uniforms.uSplit.value;
+  uniforms.uGallery.value += (targetGallery - uniforms.uGallery.value) * 0.05;
   const gallery = uniforms.uGallery.value;
 
-  // bridge flows while the brains are split, fades inside the corridor
-  const flowAmt = Math.max(0, split - 0.72) / 0.28 * (1 - gallery);
-  flowGroup.visible = flowAmt > 0.01 && mode !== "brain";
-  flowMat.uniforms.uFade.value = flowAmt * 0.95;
-  haloMat.uniforms.uFade.value = flowAmt * 0.16;
-  if (flowGroup.visible) updateFlow(time);
+  // mid-switch: once the particles have re-formed the brain, retarget and unravel
+  if (pendingPillar && gallery < 0.06) {
+    applyPillar(pendingPillar);
+    pendingPillar = null;
+    targetGallery = 1;
+  }
 
-  // brain idles in brain/split modes; the corridor needs a level horizon
+  // gentle idle rotation while the brain is assembled; corridor stays level
   const idleRot = reduceMotion ? 0 : Math.sin(time * 0.55) * 0.08;
   const rotAmt = 1 - gallery;
-  brainGroup.rotation.y = (idleRot + mouse.x * 0.08 * (1 - split * 0.35)) * rotAmt;
+  brainGroup.rotation.y = (idleRot + mouse.x * 0.08) * rotAmt;
   brainGroup.rotation.x = (-0.12 + mouse.y * 0.04) * rotAmt;
-  flowGroup.rotation.copy(brainGroup.rotation);
 
-  if (mode === "gallery") {
-    raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.intersectObjects(nodeHits, false)[0];
-    hoveredNode = hit ? hit.object.userData.index : -1;
-    canvas.style.cursor = hoveredNode >= 0 ? "pointer" : "";
-  } else {
-    hoveredNode = -1;
-    canvas.style.cursor = mode === "brain" ? "pointer" : "";
-  }
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(nodeHits, false)[0];
+  hoveredNode = hit ? hit.object.userData.index : -1;
+  canvas.style.cursor = hoveredNode >= 0 ? "pointer" : "";
 
   nodes.forEach((node, i) => {
     const d = node.userData;
@@ -768,9 +611,8 @@ function animate() {
     tip.classList.remove("is-visible");
   }
 
-  const sway = mode === "gallery" ? 0.18 : 0.0;
   camera.position.lerp(
-    new THREE.Vector3(targetCam.x + mouse.x * sway, targetCam.y + mouse.y * 0.08 * (mode === "gallery" ? 1 : 0), targetCam.z),
+    new THREE.Vector3(targetCam.x + mouse.x * 0.18, targetCam.y + mouse.y * 0.08, targetCam.z),
     0.06
   );
   camLook.lerp(targetLook, 0.06);
