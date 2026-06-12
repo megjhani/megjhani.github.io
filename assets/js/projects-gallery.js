@@ -97,7 +97,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x050706, 0.03);
 
 const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 80);
-camera.position.set(0, 0.18, 6.0);
+camera.position.set(0, 0.06, 6.0);
 
 const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -212,7 +212,7 @@ function waveY(pillar, u) {
 }
 
 // ---- brain particle system ------------------------------------------------
-const SPLIT = 1.42;
+const SPLIT = 1.28;   // identical to homepage hero split
 const uniforms = {
   uSplit:   { value: 0 },
   uGallery: { value: 0 },
@@ -331,8 +331,8 @@ function buildBrain() {
   brainGroup.add(new THREE.Points(brainGeo, mat));
 
   const hitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-  [["neuro", -1.55], ["music", 1.55]].forEach(([pillar, x]) => {
-    const hit = new THREE.Mesh(new THREE.SphereGeometry(0.92, 18, 18), hitMat);
+  [["neuro", -SPLIT], ["music", SPLIT]].forEach(([pillar, x]) => {
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(0.95, 18, 18), hitMat);
     hit.position.set(x, 0.0, 0);
     hit.userData.pillar = pillar;
     brainGroup.add(hit);
@@ -344,8 +344,8 @@ buildBrain();
 // ---- signal flow bridge: particle stream between the split hemispheres ----
 const FLOW = {
   strands: 3,
-  per: 240,
-  span: 1.44,
+  per: 260,
+  span: 1.30,    // identical to homepage signal flow
   amp: [0.30, 0.20, 0.12],
   cycles: [2.0, 3.1, 4.3],
   speed: [0.105, 0.155, 0.225],
@@ -511,9 +511,9 @@ let targetGallery = 0;
 let pointer = new THREE.Vector2(-2, -2);
 let mouse = new THREE.Vector2(0, 0);
 let hoveredNode = -1;
-let targetCam = new THREE.Vector3(0, 0.18, 6.0);
-let targetLook = new THREE.Vector3(0, 0, 0);
-let camLook = new THREE.Vector3(0, 0, 0);
+let targetCam = new THREE.Vector3(0, 0.06, 6.0);
+let targetLook = new THREE.Vector3(0, 0.06, 0);
+let camLook = new THREE.Vector3(0, 0.06, 0);
 let time = 0;
 
 const raycaster = new THREE.Raycaster();
@@ -528,8 +528,8 @@ function enterSplit() {
   setMode("split");
   targetSplit = 1;
   targetGallery = 0;
-  targetCam.set(0, 0.18, 6.0);
-  targetLook.set(0, 0, 0);
+  targetCam.set(0, 0.06, 6.0);
+  targetLook.set(0, 0.06, 0);
   if (copyEl) copyEl.textContent = "Choose a hemisphere to explore its projects.";
 }
 
@@ -590,8 +590,8 @@ function returnToBrain() {
   targetGallery = 0;
   closeDetail();
   tip.classList.remove("is-visible");
-  targetCam.set(0, 0.18, 6.0);
-  targetLook.set(0, 0, 0);
+  targetCam.set(0, 0.06, 6.0);
+  targetLook.set(0, 0.06, 0);
   if (copyEl) copyEl.textContent = "Choose a hemisphere to explore its projects.";
 }
 
@@ -646,7 +646,10 @@ function routeFromHash() {
     return;
   }
   if (PROJECTS[pillar]) {
-    enterGallery(pillar, true);
+    // arriving from a homepage hemisphere click: land already split,
+    // then the chosen hemisphere unravels into its corridor
+    uniforms.uSplit.value = 1;
+    enterGallery(pillar);
   }
 }
 window.addEventListener("hashchange", routeFromHash);
@@ -688,6 +691,39 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Enter") openDetail(selectedIndex);
 });
 
+// scroll wheel rides the corridor: scroll down → next project, up → previous
+let wheelAcc = 0;
+let wheelLock = 0;
+window.addEventListener("wheel", (event) => {
+  if (mode !== "gallery") return;
+  const now = performance.now();
+  if (now < wheelLock) return;
+  wheelAcc += event.deltaY;
+  if (Math.abs(wheelAcc) > 80) {
+    focusNode(wheelAcc > 0 ? 1 : -1, true);
+    closeDetail();
+    wheelAcc = 0;
+    wheelLock = now + 650;   // let the camera dolly settle between steps
+  }
+}, { passive: true });
+
+// touch swipe does the same on phones
+let swipeX = null;
+window.addEventListener("touchstart", (event) => {
+  if (mode === "gallery" && event.touches.length === 1) swipeX = event.touches[0].clientX;
+}, { passive: true });
+window.addEventListener("touchend", (event) => {
+  if (mode !== "gallery" || swipeX === null) return;
+  const dx = event.changedTouches[0].clientX - swipeX;
+  swipeX = null;
+  if (Math.abs(dx) > 56) {
+    focusNode(dx < 0 ? 1 : -1, true);   // swipe left → next
+    closeDetail();
+  }
+}, { passive: true });
+
+let baseScale = 0.94;
+let isSmall = false;
 function resize() {
   const w = Math.max(1, canvas.clientWidth);
   const h = Math.max(1, canvas.clientHeight);
@@ -695,12 +731,8 @@ function resize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   uniforms.uScale.value = h * 0.5;
-  const small = w < 760;
-  brainGroup.scale.setScalar(small ? 0.82 : 1.08);
-  flowGroup.scale.copy(brainGroup.scale);
-  nodeGroup.scale.copy(brainGroup.scale);
-  camera.fov = small ? 58 : 48;
-  camera.updateProjectionMatrix();
+  isSmall = w < 760;
+  baseScale = isSmall ? 0.88 : 0.94;   // identical to homepage hero scales
 }
 window.addEventListener("resize", resize);
 resize();
@@ -717,6 +749,15 @@ function animate() {
   const split = uniforms.uSplit.value;
   const gallery = uniforms.uGallery.value;
 
+  // match the homepage hero exactly: fov widens 42→62 as the brain splits,
+  // then settles at 48 inside the corridor; phones shrink the split to fit
+  camera.fov = THREE.MathUtils.lerp(THREE.MathUtils.lerp(42, 62, split), isSmall ? 58 : 48, gallery);
+  camera.updateProjectionMatrix();
+  const splitShrink = isSmall ? (1 - 0.34 * split * (1 - gallery)) : 1;
+  brainGroup.scale.setScalar(baseScale * splitShrink);
+  flowGroup.scale.copy(brainGroup.scale);
+  nodeGroup.scale.copy(brainGroup.scale);
+
   // bridge flows while the brains are split, fades inside the corridor
   const flowAmt = Math.max(0, split - 0.72) / 0.28 * (1 - gallery);
   flowGroup.visible = flowAmt > 0.01 && mode !== "brain";
@@ -724,11 +765,12 @@ function animate() {
   haloMat.uniforms.uFade.value = flowAmt * 0.16;
   if (flowGroup.visible) updateFlow(time);
 
-  // brain idles in brain/split modes; the corridor needs a level horizon
+  // brain idles before the split; like the homepage, rotation damps to zero
+  // as the hemispheres separate (corridor stays level too)
   const idleRot = reduceMotion ? 0 : Math.sin(time * 0.55) * 0.08;
-  const rotAmt = 1 - gallery;
-  brainGroup.rotation.y = (idleRot + mouse.x * 0.08 * (1 - split * 0.35)) * rotAmt;
-  brainGroup.rotation.x = (-0.12 + mouse.y * 0.04) * rotAmt;
+  const rotAmt = (1 - split) * (1 - gallery);
+  brainGroup.rotation.y = (idleRot + mouse.x * 0.25) * rotAmt;
+  brainGroup.rotation.x = (-0.12 + mouse.y * 0.12) * rotAmt;
   flowGroup.rotation.copy(brainGroup.rotation);
 
   if (mode === "gallery") {

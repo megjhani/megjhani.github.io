@@ -342,7 +342,7 @@ canvas.addEventListener("pointermove", (e) => {
   const dx = e.clientX - lastDragX;
   lastDragX = e.clientX;
   dragMoved += Math.abs(dx);
-  dragVel = dx * 0.005;
+  dragVel = dx * 0.012;   // ~half a screen drag = full revolution
   autoAngle += dragVel;
 });
 window.addEventListener("pointerup", () => { dragging = false; });
@@ -404,14 +404,13 @@ if (openParam !== null) {
 const raycaster = new THREE.Raycaster();
 const tmp       = new THREE.Vector3();
 let autoAngle   = 0;
-let smoothMouse = 0;
 let smoothTiltX = 0;
 
 function animate() {
-  // auto-spin; mouse X adjusts speed/direction; hover slows; drag overrides
-  smoothMouse += (mouse.x - smoothMouse) * 0.04;
+  // constant slow auto-spin (mouse-X steering removed — it fought the drag
+  // and blocked full revolutions); hover slows; drag overrides with inertia
   const hoverSlow = hovIdx >= 0 ? 0.05 : 1.0;
-  const spinSpeed = (0.0016 + smoothMouse * 0.007) * hoverSlow;
+  const spinSpeed = 0.0016 * hoverSlow;
   if (!dragging) {
     autoAngle += spinSpeed + dragVel;   // dragVel = inertia after release
     dragVel *= 0.94;
