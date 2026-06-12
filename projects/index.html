@@ -33,20 +33,32 @@
     </nav>
   </div>
 </header>
-<main id="main" class="projects-experience">
+<main id="main" class="projects-experience" data-mode="brain">
   <canvas id="projects-canvas" aria-label="Interactive 3D project gallery"></canvas>
 
   <section class="projects-copy" aria-live="polite">
     <p class="eyebrow">Interactive project atlas</p>
     <h1>Research <span>projects</span></h1>
-    <p id="projects-stage-copy">The brain unravels into a living signal. Each node along it is a project &mdash; click one to read it.</p>
-    <div class="pillar-toggle" id="pillar-toggle" role="tablist" aria-label="Choose a research pillar">
-      <button class="is-active" type="button" role="tab" data-pillar="neuro">Neurocritical Care AI</button>
-      <button type="button" role="tab" data-pillar="music">Music &amp; the Brain</button>
-    </div>
+    <p id="projects-stage-copy">Begin at the brain, split it into two research hemispheres, then follow each hemisphere&rsquo;s signal into its projects.</p>
   </section>
 
+  <div class="project-stage-actions" id="project-stage-actions">
+    <button class="inline-cta project-split-btn" id="project-split-btn" type="button">Split the brain</button>
+  </div>
+
+  <div class="pillar-pickers" id="pillar-pickers" aria-label="Choose a research pillar">
+    <button class="pillar-picker neuro" type="button" data-pillar="neuro">
+      <span>Neurocritical Care AI</span>
+      <small>ICP · DCI · EEG · Foundation models</small>
+    </button>
+    <button class="pillar-picker music" type="button" data-pillar="music">
+      <span>Music &amp; the Brain</span>
+      <small>Sound · aesthetics · consciousness</small>
+    </button>
+  </div>
+
   <div class="gallery-controls" id="gallery-controls" aria-label="Gallery navigation">
+    <button class="ghost-cta" id="gallery-back" type="button">&larr; Hemispheres</button>
     <button class="ghost-cta" id="gallery-prev" type="button">Previous project</button>
     <button class="ghost-cta" id="gallery-next" type="button">Next project</button>
   </div>

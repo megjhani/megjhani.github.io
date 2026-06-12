@@ -398,6 +398,27 @@ if (canvas) {
   flowPoints.frustumCulled = haloPoints.frustumCulled = false;
   root.add(haloPoints, flowPoints);
 
+  // ---- clickable hemispheres: at full split each half links to its pillar ----
+  const hemiHitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  const hemiHits = [];
+  [["/projects/#neuro", -SPLIT], ["/projects/#music", SPLIT]].forEach(([href, x]) => {
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(0.95, 16, 16), hemiHitMat);
+    hit.position.set(x, 0, 0);
+    hit.userData.href = href;
+    root.add(hit);
+    hemiHits.push(hit);
+  });
+  let hemiHover = false;
+
+  window.addEventListener("click", (e) => {
+    if (morph < 0.85 || fade < 0.4) return;
+    if (e.target.closest("a, button")) return;
+    if (!e.target.closest(".hero-sticky")) return;
+    raycaster.setFromCamera(pointer, camera);
+    const hh = raycaster.intersectObjects(hemiHits, false)[0];
+    if (hh) window.location.href = hh.object.userData.href;
+  });
+
   const flowTeal  = new THREE.Color(CAT.neuro);
   const flowGreen = new THREE.Color(CAT.mind);
   const flowWhite = new THREE.Color("#eafff8");
@@ -569,7 +590,10 @@ if (canvas) {
 
   function animate() {
     const splitAmt = Math.max(0, Math.min(1, (morph - 0.82) / 0.18));
-    if (heroContent) heroContent.style.opacity = String(Math.max(0, 1 - morph * 2.2));
+    if (heroContent) {
+      heroContent.style.opacity = String(Math.max(0, 1 - morph * 2.2));
+      heroContent.style.pointerEvents = morph > 0.3 ? "none" : "";  // don't block hemisphere clicks
+    }
     if (heroHint)    heroHint.style.opacity    = String(Math.max(0, 1 - morph * 3.0));
     if (waveLabels)  waveLabels.classList.toggle("is-unraveled", morph > 0.45);
     if (splitVision) splitVision.style.opacity = String(splitAmt * fade);
@@ -619,6 +643,15 @@ if (canvas) {
     } else {
       hovered = -1;
     }
+
+    // hemisphere hover at full split → pointer cursor (canvas sits behind DOM)
+    if (morph > 0.85 && fade > 0.4) {
+      raycaster.setFromCamera(pointer, camera);
+      hemiHover = raycaster.intersectObjects(hemiHits, false).length > 0;
+    } else {
+      hemiHover = false;
+    }
+    document.body.style.cursor = hemiHover ? "pointer" : "";
 
     nodes.forEach((node, i) => {
       const d = node.userData;
