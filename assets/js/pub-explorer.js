@@ -308,6 +308,12 @@ function resize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   brainMat.uniforms.uScale.value = renderer.domElement.height * 0.5;
+
+  // fit-to-width: on narrow/portrait screens shrink the brain so its longest
+  // axis (~2.0 world units half-extent, swings into view as it rotates) fits
+  const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
+  const halfW = halfH * camera.aspect;
+  world.scale.setScalar(Math.min(1, (halfW * 0.88) / 2.0));
 }
 window.addEventListener("resize", resize);
 resize();
