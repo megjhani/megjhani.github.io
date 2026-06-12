@@ -1,1 +1,4 @@
 _site
+.tmp-chrome/
+_*.png
+.claude/

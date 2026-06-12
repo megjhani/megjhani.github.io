@@ -1,1553 +1,414 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<title>Publications | Murad Megjhani</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="description" content="48+ peer-reviewed publications across NEJM AI, Annals of Neurology, Stroke, NeurIPS, and more — explore the brain.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;800&display=swap" rel="stylesheet">
+<link rel="shortcut icon" href="/assets/img/favicon.ico">
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="canonical" href="/publications/">
+<style>
+/* ---- publications explorer layout --------------------------------- */
+html, body { height: 100%; overflow: hidden; background: #080a09; }
 
-  <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+.pub-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
 
-  <title> | publications</title>
-  <meta name="description" content="#A simple, whitespace theme for academics. Based on [*folio](https://github.com/bogoli/-folio) #design.
-">
+/* transparent nav override for full-screen explorer */
+.pub-page .site-nav {
+  position: relative;
+  background: rgba(8,10,9,0.72);
+  border-bottom: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(20px);
+  z-index: 10;
+}
 
-  <link rel="shortcut icon" href="/assets/img/favicon.ico">
+.pub-explorer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
 
-  <link rel="stylesheet" href="/assets/css/main.css">
-  <link rel="canonical" href="/publications/">
+#pub-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- hover card ---- */
+.pub-card {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 6;
+  pointer-events: none;
+  max-width: 300px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 15px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 10px;
+  background: rgba(8,10,9,0.88);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  opacity: 0;
+  transition: opacity 160ms ease;
+  will-change: transform;
+  transform: translate(-50%, -120%) translate(50vw, 50vh);
+}
+.pub-card.is-visible { opacity: 1; }
+.pub-card-dot {
+  width: 9px; height: 9px;
+  flex: 0 0 auto;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--dc, #55d6be);
+  box-shadow: 0 0 10px var(--dc, #55d6be);
+}
+.pub-card-body { display: grid; gap: 4px; }
+.pub-card-body strong {
+  font-size: 0.83rem;
+  line-height: 1.3;
+  color: #f5f2ea;
+  font-weight: 650;
+}
+.pub-card-body span {
+  font-size: 0.70rem;
+  color: #e6b85c;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ---- backdrop ---- */
+.pub-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 14;   /* above .site-nav (10) — panel behaves as a modal */
+  background: rgba(0,0,0,0);
+  pointer-events: none;
+  transition: background 300ms ease;
+}
+.pub-backdrop.is-open {
+  background: rgba(0,0,0,0.42);
+  pointer-events: auto;
+}
+
+/* ---- detail panel ---- */
+.pub-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  z-index: 15;   /* above nav + backdrop */
+  width: min(480px, 100vw);
+  background: rgba(8,10,9,0.96);
+  border-left: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 360ms cubic-bezier(0.32, 0, 0.18, 1);
+  overflow-y: auto;
+}
+.pub-panel.is-open { transform: translateX(0); }
+
+.pub-close {
+  position: sticky;
+  top: 0;
+  align-self: flex-end;
+  margin: 20px 20px 0;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  color: #f5f2ea;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease;
+  z-index: 1;
+}
+.pub-close:hover { background: rgba(255,255,255,0.14); }
+
+.pub-panel-body {
+  padding: 20px 28px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pp-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cc, #55d6be);
+  font-weight: 650;
+}
+.pp-cat::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--cc, #55d6be);
+  box-shadow: 0 0 8px var(--cc, #55d6be);
+  flex: 0 0 auto;
+}
+
+.pp-title {
+  margin: 0;
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+  line-height: 1.25;
+  font-weight: 800;
+  color: #f5f2ea;
+}
+
+.pp-auth {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #b7c2bd;
+  line-height: 1.4;
+}
+
+.pp-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pp-venue {
+  font-size: 0.80rem;
+  color: #55d6be;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 650;
+}
+.pp-year {
+  font-size: 0.78rem;
+  color: #b7c2bd;
+  letter-spacing: 0.06em;
+}
+
+.pp-divider {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.09);
+  margin: 0;
+}
+
+.pp-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.pp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  color: #f5f2ea;
+  font: inherit;
+  font-size: 0.88rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+}
+.pp-btn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(85,214,190,0.5);
+  color: #f5f2ea;
+}
+.pp-btn--primary {
+  background: rgba(85,214,190,0.12);
+  border-color: rgba(85,214,190,0.4);
+  color: #55d6be;
+}
+.pp-btn--primary:hover { background: rgba(85,214,190,0.22); color: #55d6be; }
+
+/* ---- legend & hint ---- */
+.pub-legend {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  pointer-events: none;
+}
+.pub-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(183,194,189,0.75);
+}
+.pub-legend span::before {
+  content: "";
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--lc, #55d6be);
+  box-shadow: 0 0 6px var(--lc, #55d6be);
+  flex: 0 0 auto;
+}
+
+.pub-hint {
+  position: absolute;
+  bottom: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(183,194,189,0.55);
+  pointer-events: none;
+  white-space: nowrap;
+  animation: hint-pulse 2.8s ease-in-out infinite;
+  transition: opacity 400ms ease;
+}
+
+.pub-count {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  margin: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(183,194,189,0.45);
+  pointer-events: none;
+  text-align: center;
+}
+
+.pub-scholar {
+  position: absolute;
+  right: clamp(18px, 4vw, 48px);
+  bottom: 22px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid rgba(85,214,190,0.34);
+  border-radius: 999px;
+  background: rgba(8,10,9,0.66);
+  backdrop-filter: blur(12px);
+  color: rgba(223,253,247,0.92);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+.pub-scholar:hover {
+  border-color: rgba(85,214,190,0.7);
+  background: rgba(85,214,190,0.12);
+  transform: translateY(-2px);
+}
+.pub-scholar svg { width: 15px; height: 15px; fill: #55d6be; }
+
+@media (max-width: 600px) {
+  /* stack cleanly bottom-up: legend → scholar pill, hint pinned near top */
+  .pub-legend  { gap: 8px 14px; padding: 0 16px; bottom: 18px; }
+  .pub-legend span { font-size: 0.58rem; }
+  .pub-hint    { font-size: 0.58rem; top: 64px; bottom: auto; white-space: normal; text-align: center; width: calc(100% - 32px); }
+  .pub-panel   { width: 100vw; }
+  .pub-scholar { left: 50%; right: auto; transform: translateX(-50%); bottom: 64px; }
+  .pub-scholar:hover { transform: translateX(-50%) translateY(-2px); }
+}
+</style>
 </head>
+<body>
+<div class="pub-page">
 
-
-  <body>
-
-    <header class="site-header">
-
-  <div class="wrapper">
-
-    
-    <span class="site-title">
-        
-        <strong></strong> 
-    </span>
-    
-
-    <nav class="site-nav">
-
-      <div class="trigger">
-        <!-- About -->
-        <a class="page-link" href="/">about</a>
-
-        <!-- Blog -->
-     <!--   <a class="page-link" href="/blog/">blog</a> -->
-
-        <!-- Pages -->
-        
-          
-        
-          
-        
-          
-        
-          
-            <a class="page-link" href="/projects/">projects</a>
-          
-        
-          
-            <a class="page-link" href="/publications/">publications</a>
-          
-        
-          
-            <a class="page-link" href="/teaching/">teaching</a>
-          
-        
-          
-        
-
-        <!-- CV link -->
-        <a class="page-link" href="/assets/pdf/CV.pdf">CV</a>
-
-      </div>
-    </nav>
-
-  </div>
-
-</header>
-
-
-
-    <div class="page-content">
-      <div class="wrapper">
-        <div class="post">
-
-  <header class="post-header">
-    <h1 class="post-title">publications</h1>
-    <h5 class="post-description">.</h5>
+  <header class="site-nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="Murad Megjhani home">
+        <strong>Murad Megjhani</strong>
+        <span>Neurocritical care AI</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="/#research">Research</a>
+        <a href="/projects/">Projects</a>
+        <a href="/publications/" class="is-active">Publications</a>
+        <a href="/teaching/">Teaching</a>
+        <a href="/people/">People</a>
+        <a href="mailto:mmegjhan@barnard.edu">Contact</a>
+        <a class="nav-cta" href="/assets/pdf/CV.pdf">CV</a>
+      </nav>
+    </div>
   </header>
-<article class="post-content publications clearfix">
-  <p>Word Cloud created from abstracts of my accepted papers (wordle.net/)
-  <img class="thumbnail" src="/assets/img/Abstract_wordle.png" /></p>
 
-  <h3 class="year">2024</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="kwon2024pat">
-        <span class="title">Non-invasive pulse arrival time is associated with cardiac index in pediatric heart transplant patients with normal ejection fraction.</span>
-        <span class="author">Kwon, S.; Weinerman, B.; Nametz, D.; <em>Megjhani, M.</em>; Lee, I.; Habib, A.; Barry, O.; Park, S.</span>
-        <span class="periodical"><em>Physiological Measurement</em>, 45(7), 07NT01, 2024.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2023</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="ridha2023cpp">
-        <span class="title">Suboptimal Cerebral Perfusion is Associated with Ischemia After Intracerebral Hemorrhage.</span>
-        <span class="author">Ridha, M.; <em>Megjhani, M.</em>; Nametz, D.; Kwon, S.B.; Velazquez, A.; Ghoshal, S.; Agarwal, S.; Claassen, J.; Roh, D.J.; Connolly Jr, E.S.; Park, S.</span>
-        <span class="periodical"><em>Neurocritical Care</em>, 2023, pp. 1–10.</span>
-      </div>
-    </li>
-    <li>
-      <div id="kwon2023hrvscoping">
-        <span class="title">Heart rate and heart rate variability as a prognosticating feature for functional outcome after cardiac arrest: A scoping review.</span>
-        <span class="author">Kwon, S.B.; <em>Megjhani, M.</em>; Nametz, D.; Agarwal, S.; Park, S.</span>
-        <span class="periodical"><em>Resuscitation Plus</em>, 15, 100450, 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2023icpsegmentation">
-        <span class="title">Automatic identification of intracranial pressure waveform during external ventricular drainage clamping: segmentation via wavelet analysis.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Kwon, S.B.; Nametz, D.; Weinerman, B.; Velazquez, A.; Ghoshal, S.; Roh, D.; Agarwal, S.; Connolly, E.S.; Claassen, J.</span>
-        <span class="periodical"><em>Physiological Measurement</em>, 44(6), 064002, 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2023annneurol">
-        <span class="title">A Deep Learning Framework for Deriving Noninvasive Intracranial Pressure Waveforms from Transcranial Doppler.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Weinerman, B.; Nametz, D.; Kwon, S.B.; Velazquez, A.; Ghoshal, S.; Roh, D.J.; Agarwal, S.; Connolly Jr, E.S.; Claassen, J.</span>
-        <span class="periodical"><em>Annals of Neurology</em>, 94(1), 196–202, 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="kastenholz2023orx">
-        <span class="title">The oxygen reactivity index indicates disturbed local perfusion regulation after aneurysmal subarachnoid hemorrhage: an observational cohort study.</span>
-        <span class="author">Kastenholz, N.; <em>Megjhani, M.</em>; Conzen-Dilger, C.; Albanna, W.; Veldeman, M.; Nametz, D.; Kwon, S.B.; Schulze-Steinen, H.; Ridwan, H.; Clusmann, H.; Schubert, G.A.</span>
-        <span class="periodical"><em>Critical Care</em>, 27(1), 235, 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="ranard2023paxlovid">
-        <span class="title">Mathematical model of SARS-CoV-2 immunity predicts Paxlovid rebound.</span>
-        <span class="author">Ranard, B.L.; Vodovotz, Y.; Asgari, S.; <em>Megjhani, M.</em>; Chow, C.C.; Park, S.</span>
-        <span class="periodical"><em>Journal of Critical Care</em>, 74, 154210, 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2023annneurol2">
-        <span class="title">A Deep Learning Framework for Deriving Non‑Invasive Intracranial Pressure Waveforms from Transcranial Doppler.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Weinerman, B.; Nametz, D.; Kwon, S.B.; Velazquez, A.; Ghoshal, S.; Roh, D.J.; Agarwal, S.; Connolly Jr, E.S.; Claassen, J.</span>
-        <span class="periodical"><em>Annals of Neurology</em>, 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="gomez2023loc">
-        <span class="title">Classification of Level of Consciousness in a Neurological ICU Using Physiological Data.</span>
-        <span class="author">Gomez, L.A.; Shen, Q.; Doyle, K.; Vrosgou, A.; Velazquez, A.; <em>Megjhani, M.</em>; Ghoshal, S.; Roh, D.; Agarwal, S.; Park, S.; Claassen, J.</span>
-        <span class="periodical"><em>Neurocritical Care</em>, 38(1), 118–128, Feb 2023.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2023stroke">
-        <span class="title">Optimal cerebral perfusion pressure and brain tissue oxygen in aneurysmal subarachnoid hemorrhage.</span>
-        <span class="author"><em>Megjhani, M.</em>; Weiss, M.; Ford, J.; Terilli, K.; Kastenholz, N.; Nametz, D.; Kwon, S.B.; Velazquez, A.; Agarwal, S.; Roh, D.J.; Conzen-Dilger, C.</span>
-        <span class="periodical"><em>Stroke</em>, 54(1), 189–197, Jan 2023.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2022</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="ranard2022covidhrv">
-        <span class="title">Heart rate variability and adrenal size provide clues to sudden cardiac death in hospitalized COVID‑19 patients.</span>
-        <span class="author">Ranard, B.; <em>Megjhani, M.</em>; Terilli, K.; Yarmohammadi, H.; Ausiello, J.; Park, S.</span>
-        <span class="periodical"><em>Journal of Critical Care</em>, Oct 2022.</span>
-      </div>
-    </li>
-    <li>
-      <div id="weiss2022nimodipine">
-        <span class="title">Intraarterial nimodipine versus induced hypertension for delayed cerebral ischemia: a modified treatment protocol.</span>
-        <span class="author">Weiss, M.; Albanna, W.; Conzen‑Dilger, C.; Kastenholz, N.; Seyfried, K.; Ridwan, H.; Wiesmann, M.; Veldeman, M.; Schmidt, T.P.; <em>Megjhani, M.</em>; Schulze‑Steinen, H.; Schubert, G.A.</span>
-        <span class="periodical"><em>Stroke</em>, 53(8), 2607–2616, 2022.</span>
-      </div>
-    </li>
-    <li>
-      <div id="rubinos2022shunt">
-        <span class="title">Predicting Shunt Dependency from the Effect of Cerebrospinal Fluid Drainage on Ventricular Size.</span>
-        <span class="author">Rubinos, C.; Kwon, S.B.; <em>Megjhani, M.</em>; Terilli, K.; Wong, B.; Cespedes, L.; Ford, J.; Reyes, R.; Kirsch, H.; Alkhachroum, A.; Velazquez, A.; Roh, D.; Agarwal, S.; Connolly, E.; Boehme, A.; Claassen, J.; Park, S.</span>
-        <span class="periodical"><em>Neurocritical Care</em>, 2022.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2022vectorangle">
-        <span class="title">Vector Angle Analysis of Multimodal Neuromonitoring Data for Continuous Prediction of Delayed Cerebral Ischemia.</span>
-        <span class="author"><em>Megjhani, M.</em>; Weiss, M.; Kwon, S.B.; Ford, J.; Nametz, D.; Kastenholz, N.; ...; Park, S.</span>
-        <span class="periodical"><em>Neurocritical Care</em>, 2022, pp. 1–7.</span>
-      </div>
-    </li>
-    <li>
-      <div id="weiss2022cppdci">
-        <span class="title">Optimal Cerebral Perfusion Pressure During Delayed Cerebral Ischemia After Aneurysmal Subarachnoid Hemorrhage.</span>
-        <span class="author">Weiss, M.; Albanna, W.; Conzen, C.; <em>Megjhani, M.</em>; Tas, J.; Seyfried, K.; Schubert, G.A.</span>
-        <span class="periodical"><em>Critical Care Medicine</em>, 50(2), 183–191, 2022.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2021</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="megjhani2021ventriculitis">
-        <span class="title">Dynamic Intracranial Pressure Waveform Morphology Predicts Ventriculitis.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Kalaspudi, L.; Chen, J.; Carlson, J.; Miller, S.; Badjatia, N.; Hu, P.; Velazquez, A.; Roh, D.; Agarwal, A.; Claassen, J.; Connolly, E.S.; Hu, X.; Morris, N.; Park, S.</span>
-        <span class="periodical"><em>Neurocritical Care</em>, 2021, pp. 1–8.</span>
-      </div>
-    </li>
-    <li>
-      <div id="ranard2021covidendotypes">
-        <span class="title">Identification of endotypes of hospitalized COVID‑19 patients.</span>
-        <span class="author">Ranard, B.; <em>Megjhani, M.</em>; Terilli, K.; Doyle, K.; Claassen, J.; Pinsky, M.; Clermont, G.; Vodovotz, Y.; Asgari, S.; Park, S.</span>
-        <span class="periodical"><em>Frontiers in Medicine</em>, 8, 2021.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2021dci">
-        <span class="title">Dynamic Detection of Delayed Cerebral Ischemia: A Study in Three Centers.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.*; Weiss, M.; Savarraj, S.; Chen, L.H.; Alkhachroum, A.; Roh, D.; Agarwal, S.; Connolly, E.S.; Velazquez, A.; Boehme, A.; Claassen, J.; Choi, H.A.; Schubert, G.; Park, S.</span>
-        <span class="periodical"><em>Stroke</em>, 52(4), 1370–1379, 2021.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2020</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="rasulo2020perihemorrhagic">
-        <span class="title">The Association Between Peri‑Hemorrhagic Metabolites and Cerebral Hemodynamics in Comatose Patients With Spontaneous Intracerebral Hemorrhage: An International Multicenter Pilot Study Analysis.</span>
-        <span class="author">Rasulo, F.; Piva, S.; Park, S.; Oddo, M.; <em>Megjhani, M.</em>; Cardim, D.; Matteotti, I.; Gandolfi, L.; Robba, G.; Taccone, F.S.; Latronico, N.</span>
-        <span class="periodical"><em>Frontiers in Neurology</em>, Sep 2020.</span>
-      </div>
-    </li>
-    <li>
-      <div id="savarraj2020mlsah">
-        <span class="title">Machine learning to predict delayed cerebral ischemia and outcomes in subarachnoid hemorrhage.</span>
-        <span class="author">Savarraj, J.; Hergenroeder, G.; Zhu, L.; Chang, T.; Park, S.; <em>Megjhani, M.</em>; Vahidy, F.; Zhao, Z.; Kitagawa, R.; Choi, H.A.</span>
-        <span class="periodical"><em>Neurology</em>, 2020.</span>
-      </div>
-    </li>
-    <li>
-      <div id="alkhachroum2020bigdata">
-        <span class="title">Harnessing Big Data in Neurocritical Care in the Era of Precision Medicine.</span>
-        <span class="author">Alkhachroum, A.*; Terilli, K.*; <em>Megjhani, M.*</em>; Park, S.</span>
-        <span class="periodical"><em>Current Treatment Options in Neurology</em>, 22(5), 2020.</span>
-      </div>
-    </li>
-    <li>
-      <div id="stember2020tcd">
-        <span class="title">Surface Point Cloud Ultrasound with Transcranial Doppler: Coregistration of Surface Point Cloud Ultrasound with Magnetic Resonance Angiography for Improved Reproducibility, Visualization, and Navigation in Transcranial Doppler Ultrasound.</span>
-        <span class="author">Stember, J.N.; Terilli, K.L.; Perez, E.; <em>Megjhani, M.</em>; Cooper, C.A.; Jambawalikar, S.; Park, S.</span>
-        <span class="periodical"><em>Journal of Digital Imaging</em>, 2020, pp. 1–7.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2019</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="alkhachroum2019hyperemia">
-        <span class="title">Hyperemia in subarachnoid hemorrhage patients is associated with an increased risk of seizures.</span>
-        <span class="author">Alkhachroum, A.; <em>Megjhani, M.</em>; Terilli, K.; Rubinos, C.; Ford, J.; Wallace, B.; Roh, D.; Agarwal, S.; Connolly, E.; Boehme, A.; Claassen, J.; Park, S.</span>
-        <span class="periodical"><em>Journal of Cerebral Blood Flow &amp; Metabolism</em>, 2019.</span>
-      </div>
-    </li>
-    <li>
-      <div id="claassen2019nejm">
-        <span class="title">Detection of Brain Activation in Unresponsive Patients with Acute Brain Injury.</span>
-        <span class="author">Claassen, J.; Doyle, K.; Matory, A.; Couch, C.; Burger, K.; Velazquez, A.; Okonkwo, J.; King, J.R.; Park, S.; Agarwal, S.; Roh, D.; <em>Megjhani, M.</em>; Eliseyev, A.; Connolly, E.; Rohaut, B.</span>
-        <span class="periodical"><em>New England Journal of Medicine</em>, 380, 2497–2505, 2019.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2019hrv">
-        <span class="title">Heart Rate Variability as a Biomarker of Neurocardiogenic Injury after Subarachnoid Hemorrhage.</span>
-        <span class="author"><em>Megjhani, M.</em>; Kaffashi, F.; Terilli, K.; Alkhachroum, A.; Esmaeili, B.; Doyle, K.; Murthy, S.; Velazquez, A.; Connolly, E.; Roh, D.; Agarwal, S.; Loparo, K.; Claassen, J.; Boehme, A.; Park, S.</span>
-        <span class="periodical"><em>Neurocritical Care</em>, 2019.</span>
-      </div>
-    </li>
-    <li>
-      <div id="rohaut2019srep">
-        <span class="title">Deep structural brain lesions associated with consciousness impairment early after hemorrhagic stroke.</span>
-        <span class="author">Rohaut, B.; Doyle, K.; Reynolds, A.; Igwe, K.; Couch, C.; Matory, A.; Rizvi, B.; Roh, D.; Velazquez, A.; <em>Megjhani, M.</em>; et al.</span>
-        <span class="periodical"><em>Scientific Reports</em>, 9(1), 4174, 2019.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2019clustering">
-        <span class="title">Use of Clustering to Investigate Changes in Intracranial Pressure Waveform Morphology in Patients with Ventriculitis.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Kaplan, A.; Wallace, B.K.; Alkhachroum, A.; Hu, X.; Park, S.</span>
-        <span class="periodical"><em>Physiological Measurement</em>, 40(1), 015002, Jan 2019.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2018</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="megjhani2018activelearning">
-        <span class="title">An active learning framework for enhancing identification of non‑artifactual intracranial pressure waveforms.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Park, S.; et al.</span>
-        <span class="periodical"><em>Physiological Measurement</em>, Dec 2018.</span>
-      </div>
-    </li>
-    <li>
-      <div id="park2018predicting">
-        <span class="title">Predicting Delayed Cerebral Ischemia after Subarachnoid Hemorrhage Using High Frequency Physiological Data.</span>
-        <span class="author">Park, S.; <em>Megjhani, M.</em>; Claassen, J.; Elhadad, N.</span>
-        <span class="periodical"><em>Journal of Clinical and Medical Computing</em>, 2018.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2018dictionarylearning">
-        <span class="title">Incorporating High Frequency Physiologic Data Using Computational Dictionary Learning Improves Prediction of Delayed Cerebral Ischemia Compared to Existing Methods.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Claassen, J.; Elhadad, N.; Park, S.</span>
-        <span class="periodical"><em>Frontiers in Neurology</em>, Feb 2018.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2018prxcppopt">
-        <span class="title">Deriving the PRx and CPPopt from 0.2‑Hz Data: Establishing Generalizability to Bedmaster Users.</span>
-        <span class="author"><em>Megjhani, M.</em>; Terilli, K.; Martin, A.; Velazquez, A.; Claassen, J.; Park, S.</span>
-        <span class="periodical">In: Heldt T. (ed.) <em>Intracranial Pressure &amp; Neuromonitoring XVI</em>, Acta Neurochirurgica Supplement, vol 126. Springer, Cham, 2018.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2017</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="cruzgarza2017museum">
-        <span class="title">Deployment of Mobile EEG Technology in an Art Museum Setting: Evaluation of Signal Quality and Usability.</span>
-        <span class="author">Cruz‑Garza, J.; Brantley, J.; Nakagome, S.; Kontson, K.; <em>Megjhani, M.</em>; Robleto, D.; Contreras‑Vidal, J.L.</span>
-        <span class="periodical"><em>Frontiers in Human Neuroscience</em>, Nov 2017.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2017bioinformatics">
-        <span class="title">Morphological Constraint Spectral Unmixing of Biological Tissues Using Confocal Microscopy.</span>
-        <span class="author"><em>Megjhani, M.</em>; Roysam, B.</span>
-        <span class="periodical"><em>Bioinformatics</em>, 2017.</span>
-      </div>
-    </li>
-    <li>
-      <div id="barton2017neuroplasticity">
-        <span class="title">Binge Alcohol Alters Exercise‑Driven Neuroplasticity.</span>
-        <span class="author">Barton, E.; Lu, Y.; <em>Megjhani, M.</em>; Maynard, M.; Kulkarni, P.; Roysam, B.; Leasure, J.L.</span>
-        <span class="periodical"><em>Neuroscience</em>, 343, Feb 2017.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2015</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="megjhani2015yourbrainonart">
-        <span class="title">Your Brain on Art: Emergent Cortical Dynamics During Aesthetic Experiences.</span>
-        <span class="author"><em>Megjhani, M.</em>*; Kontson, K.*; Cruz‑Garza, J.G.; Brantley, J.A.; Robleto, D.; Contreras‑Vidal, J.L.</span>
-        <span class="periodical"><em>Frontiers in Human Neuroscience</em>, Nov 2015.</span>
-      </div>
-    </li>
-    <li>
-      <div id="megjhani2015microgliaarbors">
-        <span class="title">Population‑scale Three‑dimensional Reconstruction and Quantitative Profiling of Microglia Arbors.</span>
-        <span class="author"><em>Megjhani, M.</em>; Rey‑Villamizar, N.; Merouane, A.; Lu, Y.; Mukherjee, A.; Trett, K.; Chong, P.; Harris, C.; Shain, W.; Roysam, B.</span>
-        <span class="periodical"><em>Bioinformatics</em>, 31, 2190–2198, Feb 2015.</span>
-      </div>
-    </li>
-    <li>
-      <div id="xu2015unsupervised">
-        <span class="title">Unsupervised Profiling of Microglial Arbor Morphologies and Distribution Using a Nonparametric Bayesian Approach.</span>
-        <span class="author">Xu, Y.; <em>Megjhani, M.</em>; Shain, W.; Roysam, B.; Han, Z.</span>
-        <span class="periodical"><em>IEEE Journal of Selected Topics in Signal Processing</em>, Jan 2015.</span>
-      </div>
-    </li>
-  </ol>
-
-  <h3 class="year">2014</h3>
-  <ol class="bibliography">
-    <li>
-      <div id="rey2014python">
-        <span class="title">Large‑scale Automated Image Analysis for Computational Profiling of Brain Tissue Surrounding Implanted Neuroprosthetic Devices Using Python.</span>
-        <span class="author">Rey‑Villamizar, N.; Somasundar, V.; <em>Megjhani, M.</em>; Xu, Y.; Lu, Y.; Padmanabhan, R.; Trett, K.; Shain, W.; Roysam, B.</span>
-        <span class="periodical"><em>Frontiers in Neuroinformatics</em>, 8(39), Apr 2014.</span>
-      </div>
-    </li>
-  </ol>
-</article>
-
-<!--  <article class="post-content publications clearfix">-->
-<!--    <p>Word Cloud created from abstracts of my accepted papers (wordle.net/)-->
-<!--<img class="thumbnail" src="/assets/img/Abstract_wordle.png" /></p>-->
-
-<!--<h3 class="year">2018</h3>-->
-<!--<ol class="bibliography"><li>-->
-
-<!--<div id="park2018predicting">-->
-<!--  -->
-<!--    <span class="title">Predicting delayed cerebral ischemia after subarachnoid hemorrhage using physiological time series data</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Park, Soojin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Frey, Hans-Peter,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Grave, Edouard,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Wiggins, Chris,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Terilli, Kalijah L,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Roh, David J,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Velazquez, Angela,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Agarwal, Sachin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Connolly, E Sander,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              others, -->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Journal of clinical monitoring and computing</em>-->
-<!--    -->
-<!--    -->
-<!--      2018-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li>-->
-<!--<li>-->
-
-<!--<div id="ford2018brain">-->
-<!--  -->
-<!--    <span class="title">Brain Tissue Oxygenation as an Adjunctive Monitor for Determining Optimal Cerebral Perfusion Pressure in Subarachnoid Hemorrhage Patients (P4. 297)</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Ford, Jenna,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Park, Soojin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Boehme, Amelia,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              Terilli, Kalijah-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--    -->
-<!--      2018-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li>-->
-<!--<li>-->
-
-<!--<div id="megjhani2018incorporating">-->
-<!--  -->
-<!--    <span class="title">Incorporating High-Frequency Physiologic Data Using Computational Dictionary Learning Improves Prediction of Delayed Cerebral Ischemia Compared to Existing Methods</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Terilli, Kalijah,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Frey, Hans-Peter,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Velazquez, Angela G,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Doyle, Kevin William,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Connolly, Edward Sander,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Roh, David Jinou,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Agarwal, Sachin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Claassen, Jan,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Elhadad, Noemie,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              others, -->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Frontiers in neurology</em>-->
-<!--    -->
-<!--    -->
-<!--      2018-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li>-->
-<!--<li>-->
-
-<!--<div id="megjhani2018deriving">-->
-<!--  -->
-<!--    <span class="title">Deriving the PRx and CPPopt from 0.2-Hz Data: Establishing Generalizability to Bedmaster Users</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Terilli, Kalijah,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Martin, Andrew,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Velazquez, Angela,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Claassen, Jan,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Roh, David,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Agarwal, Sachin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Smielewski, Peter,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Boehme, Amelia K,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Schmidt, J Michael,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              others, -->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--    -->
-<!--      2018-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li></ol>-->
-
-<!--<h3 class="year">2017</h3>-->
-<!--<ol class="bibliography"><li>-->
-
-<!--<div id="barton2017binge">-->
-<!--  -->
-<!--    <span class="title">Binge alcohol alters exercise-driven neuroplasticity</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Barton, Emily A,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Lu, Yanbin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Maynard, Mark E,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Kulkarni, Prathamesh M,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              <a href="http://www.ee.uh.edu/faculty/roysam" target="_blank">Roysam, Badrinath</a>,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              Leasure, J Leigh-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Neuroscience</em>-->
-<!--    -->
-<!--    -->
-<!--      2017-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li>-->
-<!--<li>-->
-
-<!--<div id="megjhani2017morphologically">-->
-<!--  -->
-<!--    <span class="title">Morphologically constrained spectral unmixing by dictionary learning for multiplex fluorescence microscopy</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Sampaio, Pedro,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Leigh Carstens, Julienne,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Kalluri, Raghu,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              <a href="http://www.ee.uh.edu/faculty/roysam" target="_blank">Roysam, Badrinath</a>-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Bioinformatics</em>-->
-<!--    -->
-<!--    -->
-<!--      2017-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li>-->
-<!--<li>-->
-
-<!--<div id="cruz2017deployment">-->
-<!--  -->
-<!--    <span class="title">Deployment of Mobile EEG Technology in an Art Museum Setting: Evaluation of Signal Quality and Usability</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Cruz-Garza, Jesus G,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Brantley, Justin A,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Nakagome, Sho,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Kontson, Kimberly,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Robleto, Dario,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              Contreras-Vidal, Jose L-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Frontiers in human neuroscience</em>-->
-<!--    -->
-<!--    -->
-<!--      2017-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li></ol>-->
-
-<!--<h3 class="year">2016</h3>-->
-<!--<ol class="bibliography"><li>-->
-
-<!--<div id="xu2016unsupervised">-->
-<!--  -->
-<!--    <span class="title">Unsupervised Profiling of Microglial Arbor Morphologies and Distribution Using a Nonparametric Bayesian Approach</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Xu, Yan,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Trett, Kristen,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Shain, William,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              <a href="http://www.ee.uh.edu/faculty/roysam" target="_blank">Roysam, Badrinath</a>,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              Han, Zhu-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>IEEE Journal of Selected Topics in Signal Processing</em>-->
-<!--    -->
-<!--    -->
-<!--      2016-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li></ol>-->
-
-<!--<h3 class="year">2015</h3>-->
-<!--<ol class="bibliography"><li>-->
-
-<!--<div id="megjhani2015population">-->
-<!--  -->
-<!--    <span class="title">Population-scale three-dimensional reconstruction and quantitative profiling of microglia arbors</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Rey-Villamizar, Nicolas,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Merouane, Amine,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Lu, Yanbin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Mukherjee, Amit,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Trett, Kristen,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Chong, Peter,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Harris, Carolyn,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Shain, William,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              <a href="http://www.ee.uh.edu/faculty/roysam" target="_blank">Roysam, Badrinath</a>-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Bioinformatics</em>-->
-<!--    -->
-<!--    -->
-<!--      2015-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li>-->
-<!--<li>-->
-
-<!--<div id="kontson2015your">-->
-<!--  -->
-<!--    <span class="title">Your brain on art: emergent cortical dynamics during aesthetic experiences</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Kontson, Kimberly L,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Brantley, Justin A,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Cruz-Garza, Jesus G,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Nakagome, Sho,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Robleto, Dario,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              White, Michelle,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Civillico, Eugene,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              Contreras-Vidal, Jose L-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Frontiers in human neuroscience</em>-->
-<!--    -->
-<!--    -->
-<!--      2015-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li></ol>-->
-
-<!--<h3 class="year">2014</h3>-->
-<!--<ol class="bibliography"><li>-->
-
-<!--<div id="rey2014large">-->
-<!--  -->
-<!--    <span class="title">Large-scale automated image analysis for computational profiling of brain tissue surrounding implanted neuroprosthetic devices using Python</span>-->
-<!--    <span class="author">-->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Rey-Villamizar, Nicolas,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Somasundar, Vinay,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            <em>Megjhani, Murad</em>,-->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Xu, Yan,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Lu, Yanbin,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Padmanabhan, Raghav,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Trett, Kristen,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          -->
-<!--            -->
-<!--              Shain, William,-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--        -->
-<!--          and-->
-<!--          -->
-<!--            -->
-<!--              <a href="http://www.ee.uh.edu/faculty/roysam" target="_blank">Roysam, Badri</a>-->
-<!--            -->
-<!--          -->
-<!--        -->
-<!--      -->
-<!--    </span>-->
-
-<!--    <span class="periodical">-->
-<!--    -->
-<!--      <em>Frontiers in Neuroinformatics</em>-->
-<!--    -->
-<!--    -->
-<!--      2014-->
-<!--    -->
-<!--    </span>-->
-<!--  -->
-
-<!--  <span class="links">-->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  -->
-<!--  </span>-->
-
-<!--  &lt;!&ndash; Hidden abstract block &ndash;&gt;-->
-<!--  -->
-<!--</div>-->
-<!--</li></ol>-->
-
-
-<!--  </article>-->
-
-  
-
-  
-
-</div>
-
+  <div class="pub-explorer" role="main" aria-label="Publication brain explorer">
+    <canvas id="pub-canvas"></canvas>
+
+    <!-- hover card (3D→2D positioned by JS) -->
+    <div class="pub-card" id="pub-card" aria-hidden="true" role="tooltip">
+      <div class="pub-card-dot" id="pc-dot"></div>
+      <div class="pub-card-body">
+        <strong id="pc-title"></strong>
+        <span id="pc-meta"></span>
       </div>
     </div>
 
-    <footer>
+    <!-- backdrop for panel close -->
+    <div class="pub-backdrop" id="pub-backdrop" aria-hidden="true"></div>
 
-  <div class="wrapper">
-    &copy; Copyright 2018 .
-    
-    
+    <!-- detail panel -->
+    <aside class="pub-panel" id="pub-panel" aria-label="Paper details">
+      <button class="pub-close" id="pub-close" aria-label="Close paper details">&#10005;</button>
+      <div class="pub-panel-body" id="pub-panel-body"></div>
+    </aside>
+
+    <!-- count -->
+    <p class="pub-count">38 publications &nbsp;·&nbsp; 2014&ndash;2026</p>
+
+    <!-- hint -->
+    <p class="pub-hint" id="pub-hint">Explore the brain &nbsp;·&nbsp; tap or click any node to open</p>
+
+    <!-- legend -->
+    <div class="pub-legend" aria-hidden="true">
+      <span style="--lc:#55d6be">Neurocritical care AI</span>
+      <span style="--lc:#e6b85c">Foundation models</span>
+      <span style="--lc:#9edc76">Music &amp; consciousness</span>
+      <span style="--lc:#c9a6ff">Biological imaging</span>
+    </div>
+
+    <!-- full publication list on Google Scholar -->
+    <a class="pub-scholar" href="https://scholar.google.com/citations?user=IOt7uesAAAAJ&hl=en" target="_blank" rel="noreferrer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1L1 6.5 12 12l9-4.5V14h2V6.5L12 1zM5 11.4v3.3c0 1.9 3.1 3.5 7 3.5s7-1.6 7-3.5v-3.3l-7 3.5-7-3.5z"/></svg>
+      View all on Google Scholar
+    </a>
   </div>
 
-</footer>
+</div><!-- .pub-page -->
 
-
-    <!-- Load jQuery -->
-<script src="//code.jquery.com/jquery-1.12.4.min.js"></script>
-
-<!-- Load Common JS -->
-<script src="/assets/js/common.js"></script>
-
-
-<!-- Load KaTeX -->
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js"></script>
-<script src="/assets/js/katex.js"></script>
-
-
-
-
-<!-- Include custom icon fonts -->
-<link rel="stylesheet" href="/assets/css/font-awesome.min.css">
-<link rel="stylesheet" href="/assets/css/academicons.min.css">
-
-<!-- Google Analytics -->
-<script>
-(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-ga('create', 'UA-XXXXXXXX-X', 'auto');
-ga('send', 'pageview');
-</script>
-
-
-  </body>
-
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script type="module" src="/assets/js/pub-explorer.js"></script>
+<script src="/assets/js/site.js"></script>
+</body>
 </html>
