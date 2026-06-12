@@ -319,15 +319,36 @@ let rect      = canvas.getBoundingClientRect();
 let hovIdx    = -1;
 let panelOpen = false;
 
-window.addEventListener("pointermove", (e) => {
+function updatePointer(e) {
   mouse.x   = (e.clientX / window.innerWidth)  * 2 - 1;
   mouse.y   = -((e.clientY / window.innerHeight) * 2 - 1);
   pointer.x = ((e.clientX - rect.left) / rect.width)  * 2 - 1;
   pointer.y = -(((e.clientY - rect.top)  / rect.height) * 2 - 1);
-});
+}
+window.addEventListener("pointermove", updatePointer);
 window.addEventListener("scroll", () => { rect = canvas.getBoundingClientRect(); }, { passive: true });
 
+// drag (mouse or finger) rotates the brain directly, with inertia
+let dragging = false, dragMoved = 0, lastDragX = 0, dragVel = 0;
+canvas.addEventListener("pointerdown", (e) => {
+  updatePointer(e);          // touch never fires pointermove before tap
+  dragging = true;
+  dragMoved = 0;
+  lastDragX = e.clientX;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!dragging || panelOpen) return;
+  const dx = e.clientX - lastDragX;
+  lastDragX = e.clientX;
+  dragMoved += Math.abs(dx);
+  dragVel = dx * 0.005;
+  autoAngle += dragVel;
+});
+window.addEventListener("pointerup", () => { dragging = false; });
+
 canvas.addEventListener("click", () => {
+  if (dragMoved > 8) return;          // it was a drag, not a tap
   if (hovIdx >= 0) openPanel(hovIdx);
 });
 
@@ -387,11 +408,14 @@ let smoothMouse = 0;
 let smoothTiltX = 0;
 
 function animate() {
-  // auto-spin; mouse X adjusts speed/direction; hover slows
+  // auto-spin; mouse X adjusts speed/direction; hover slows; drag overrides
   smoothMouse += (mouse.x - smoothMouse) * 0.04;
   const hoverSlow = hovIdx >= 0 ? 0.05 : 1.0;
   const spinSpeed = (0.0016 + smoothMouse * 0.007) * hoverSlow;
-  autoAngle  += spinSpeed;
+  if (!dragging) {
+    autoAngle += spinSpeed + dragVel;   // dragVel = inertia after release
+    dragVel *= 0.94;
+  }
   smoothTiltX += (-0.18 - mouse.y * 0.20 - smoothTiltX) * 0.04;
 
   if (!panelOpen) {
