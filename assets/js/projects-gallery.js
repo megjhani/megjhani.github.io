@@ -74,12 +74,6 @@ const PROJECTS = {
         tags: ["Migraine", "Acoustics", "EEG", "Intervention"],
       },
       {
-        title: "Brain States in Disorders of Consciousness",
-        short: "EEG classification for covert awareness and neuro ICU brain states.",
-        body: "Some patients appear unresponsive yet retain covert awareness detectable only through neural signals. This line of work uses EEG classification to map consciousness and search for preserved networks.",
-        tags: ["Consciousness", "EEG", "Neuro ICU", "Awareness"],
-      },
-      {
         title: "Sound-Mediated Neural Resonance",
         short: "Rhythm and harmony as tools for brain-state modulation.",
         body: "Rhythmic and harmonic sound structures can entrain neural oscillations. This project studies how entrainment generalizes across attention, mood, pain, and altered states.",
